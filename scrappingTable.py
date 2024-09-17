@@ -26,17 +26,20 @@ driver.set_window_size(982, 655)
 
 # Initialize a list to store the scraped data
 data_list = []
+
+# Initialize WebDriverWait, so the driver can waiting until found the content we search for
 wait = WebDriverWait(driver, 10)
+wait.until(EC.presence_of_element_located(By.CLASS_NAME, 'mw-page-container'))
 
 # Locate elements (modify selectors based on the webpage structure)
 elements = driver.find_element(By.CLASS_NAME, 'mw-page-container')  # Adjust selector as needed
 
 # Locate result items
+#Initialize the location of table
 table = driver.find_element(By.CLASS_NAME, 'wikitable')
 
+#Initialize the location for row table, that'll be used for looping
 rows = table.find_elements(By.TAG_NAME, 'tr')
-# print(len(tables))
-df =[]
 
 for row in rows:
     cols = row.find_elements(By.TAG_NAME, 'td')
@@ -51,13 +54,14 @@ for row in rows:
 
     data_list.append(data_row)
 # Convert the list to a DataFrame
+df =[]
 df = pd.DataFrame(data_list)
 print(df)
 
 # Save DataFrame to an Excel file
 df.to_excel('scraped_data.xlsx', index=False)
 
-# time.sleep(10)
+time.sleep(10)
 
 # Close the WebDriver
 driver.quit()
