@@ -14,7 +14,7 @@ path = 'https://opentrolley.co.id/'
 
 # make sure to specify the path to your chromedriver in service
 # in some source that i've been read, you can write like this or you can add 'executable_path', it's up to you
-service = Service('C:/Main Storage/Documents/webscrap/chromedriver-win64/chromedriver.exe')  
+service = Service('C:/Users/operation.support/Documents/web scrap/chromedriver-win64/chromedriver.exe')  
 
 # initialize the webdriver with the service that we have been add
 driver = webdriver.Chrome(service=service)
@@ -56,12 +56,42 @@ for catalog in catalogy:
     catalogList.append([title, description, link])
 
 # we can check the catalogList
-print(catalogList)
+# print(catalogList)
 
 # and for the last we convert the catalogList to dataframe
 df = pd.DataFrame(catalogList, columns=['Title', 'Description', 'Link'])
 # and export it to excel, you can export it to csv by change the function 'to_excel' --> 'to_csv'
-df.to_excel('catalogue.xlsx', index=False)
+# df.to_excel('catalogue.xlsx', index=False)
+# print(catalogList)
+
+
+nextPage = [link[2] for link in catalogList]
+descNext = []
+
+# for i in range(int(len(nextPage))):
+urlNext = nextPage[0]
+driver.get(urlNext)
+
+wait.until(EC.presence_of_all_elements_located((By.XPATH, '//div[contains(@class, "search-results-content")]')))    
+result = driver.find_element(By.CLASS_NAME, 'search-results-content')
+resultContent = result.find_elements(By.XPATH, '//div[contains(@class, "w3-row")]')
+print(len(resultContent))
+# for content in resultContent:
+
+    # detail = content.find_element(By.XPATH, '//div[contains(@class, "book-title")]')
+    # title1 = detail.find_element(By.XPATH, '//a[contains(@id, "aTitle")]').text
+    # detailAuth = content.find_element(By.XPATH, '//div[contains(@class, "book-author")]')
+    # author = detailAuth.find_element(By.XPATH, '//a[contains(@id, "aAuthorURL1")]').text
+    # status = content.find_element(By.XPATH, '//div[contains(@class, "stock-status")]').text
+    # normalPrice = content.find_element(By.XPATH, '//span[contains(@id, "NormalPrice")]').text
+    # discountPrice = content.find_element(By.XPATH, '//span[contains(@id, "lblPrice")]').text
+    
+    # descNext.append([title1, author, status, normalPrice, discountPrice])
+        
+# print(descNext)
+
+# contentDf = pd.DataFrame(descNext, columns=['Title', 'Author', 'Status', 'Normal Price', 'Discount Price'])
+# print(contentDf)
 
 # close the driver
 driver.quit()
