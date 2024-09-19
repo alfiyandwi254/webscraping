@@ -5,7 +5,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import NoSuchElementException
 import pandas as pd
+import time
 # to this --> it's like basic format library for selenium that'll used for scrapping
 # the pandas is used for convert your scraped data to dataframe & Keys is used to hit keys like enter, shift, etc.
 
@@ -24,7 +26,7 @@ driver.get(path)
 
 # this is the condition if you want to make sure that web will wait until found the content/element you are searching for
 # the library that used here are WebDriverWait and and expected_conditions or alias 'EC'
-wait = WebDriverWait(driver, 10)
+wait = WebDriverWait(driver, 5)
 wait.until(EC.presence_of_all_elements_located((By.XPATH, '//div[contains(@class, "w3-row")]')))
 
 # here i want to search for element-element where contain the data that I want to scrape
@@ -65,32 +67,60 @@ df = pd.DataFrame(catalogList, columns=['Title', 'Description', 'Link'])
 # print(catalogList)
 
 
-nextPage = [link[2] for link in catalogList]
+findMore = [link[2] for link in catalogList]
 descNext = []
 
 # for i in range(int(len(nextPage))):
-urlNext = nextPage[0]
+urlNext = findMore[0]
 driver.get(urlNext)
 
-wait.until(EC.presence_of_all_elements_located((By.XPATH, '//div[contains(@class, "search-results-content")]')))    
-result = driver.find_element(By.CLASS_NAME, 'search-results-content')
-resultContent = result.find_elements(By.XPATH, '//div[contains(@class, "w3-row")]')
-print(len(resultContent))
-# for content in resultContent:
+# //*[@id="ctl00_ContentPlaceHolder1_UpdatePanel1"]
+wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="ctl00_ContentPlaceHolder1_UpdatePanel1"]/div[contains(@class, "w3-row")]')))    
+resultContent = driver.find_elements(By.XPATH, '//*[@id="ctl00_ContentPlaceHolder1_UpdatePanel1"]/div[contains(@class, "w3-row")]')
+prc = []
 
-    # detail = content.find_element(By.XPATH, '//div[contains(@class, "book-title")]')
-    # title1 = detail.find_element(By.XPATH, '//a[contains(@id, "aTitle")]').text
-    # detailAuth = content.find_element(By.XPATH, '//div[contains(@class, "book-author")]')
-    # author = detailAuth.find_element(By.XPATH, '//a[contains(@id, "aAuthorURL1")]').text
-    # status = content.find_element(By.XPATH, '//div[contains(@class, "stock-status")]').text
-    # normalPrice = content.find_element(By.XPATH, '//span[contains(@id, "NormalPrice")]').text
-    # discountPrice = content.find_element(By.XPATH, '//span[contains(@id, "lblPrice")]').text
-    
-    # descNext.append([title1, author, status, normalPrice, discountPrice])
+nextPage = driver.find_element(By.XPATH, '//*[@id="ctl00_ContentPlaceHolder1_aNext"]')
+
+while True:
+    currentPage = ''
+    nextPage = driver.find_element(By.XPATH, '//*[@id="ctl00_ContentPlaceHolder1_aNext"]')
+    wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="ctl00_ContentPlaceHolder1_UpdatePanel1"]/div[contains(@class, "w3-row")]')))
+    resultContent = driver.find_elements(By.XPATH, '//*[@id="ctl00_ContentPlaceHolder1_UpdatePanel1"]/div[contains(@class, "w3-row")]')
+    currentPage = [content.find_element(By.CLASS_NAME, 'book-title').text for content in resultContent]
+
+    for content in resultContent:
+        titles = content.find_element(By.CLASS_NAME, 'book-title').text
+        author = content.find_element(By.CLASS_NAME, 'book-author').text
+        status = content.find_element(By.CLASS_NAME, 'stock-status').text
+        prices = content.find_elements(By.CLASS_NAME, 'price-after-disc')
+        for price in prices:
+            prc.append(price.text)
+        descNext.append([titles, author, status, prc[0], prc[1]])
+        prc = []
+
+    try:
+        if nextPage.is_enabled():
+            nextPage.click()  # Click the next page button
+            # Optionally wait for the page to load (you might need WebDriverWait here)
+
+            WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'book-title')))
+            
+            # Re-fetch the new content
+            new_resultContent = driver.find_elements(By.XPATH, '//*[@id="ctl00_ContentPlaceHolder1_UpdatePanel1"]/div[contains(@class, "w3-row")]')  # Adjust as needed
+            new_page_titles = [content.find_element(By.CLASS_NAME, 'book-title').text for content in new_resultContent]
+
+            # Check if the content has changed
+            if new_page_titles == currentPage:
+                print("There is no new page, stopping the scrape.")
+                break  # Stop if the content hasn't changed
+        else:
+            break  # Exit the loop if the button is disabled
+    except NoSuchElementException:
+        break  # Exit the loop if the button is not found
         
-# print(descNext)
 
-# contentDf = pd.DataFrame(descNext, columns=['Title', 'Author', 'Status', 'Normal Price', 'Discount Price'])
+contentDf = pd.DataFrame(descNext, columns=['Title', 'Author', 'Status', 'Normal Price', 'Discount Price'])
+contentDf.to_excel('catalog.xlsx', index=False)
 # print(contentDf)
 
 # close the driver
